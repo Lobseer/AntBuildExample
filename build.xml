@@ -1,0 +1,256 @@
+<project name="AntDefault" basedir=".">
+    <description>
+        Ant build sample for running
+        - findbugs,
+        - pmd,
+        - checkstyle,
+        - cobertrua and
+        - junit.
+    </description>
+
+    <!-- Change the paths to your individual installation directories -->
+    <property name="lib.dir" location="lib"/>
+    <property name="src.dir" location="src"/>
+    <property name="bin.dir" location="build"/>
+    <property name="htm.dir" location="html"/>
+    <property name="report.dir" location="report"/>
+
+    <property name="cobertura.home.dir" value="${lib.dir}/cobertura-2.1.1"/>
+
+    <property name="report.junit.dir" location="${report.dir}/junit"/>
+    <property name="report.cobertura.dir" location="${report.dir}/cobertura"/>
+
+    <property name="instrumented.dir" location="${basedir}/instrumented"/>
+    <property name="report.temp.dir" location="${report.dir}/temp"/>
+    <property name="cobertura.ser.file" location="${report.temp.dir}/cobertura.ser"/>
+
+    <path id="run.classpath">
+        <pathelement path="${bin.dir}"/>
+        <pathelement path="${basedir}/lib/junit-4.12.jar"/>
+    </path>
+
+    <path id="cobertura.classpath">
+        <path refid="run.classpath"/>
+        <fileset dir="${cobertura.home.dir}">
+            <include name="cobertura-2.0.3.jar"/>
+            <include name="lib/**/*.jar"/>
+        </fileset>
+        <pathelement location="lib/apache-log4j-2.8.1-bin"/>
+    </path>
+
+    <taskdef classpathref="cobertura.classpath" resource="tasks.properties"/>
+
+    <!-- -->
+    <target name="clean" description="Delete all result to start with a clean build.">
+        <delete dir="${report.junit.dir}"/>
+        <delete dir="${report.cobertura.dir}"/>
+        <delete dir="${report.temp.dir}"/>
+        <delete dir="${bin.dir}"/>
+    </target>
+
+    <target name="prepare.report.dir" description="Prepares the reports folder">
+        <copy todir="${report.dir}">
+            <fileset dir="${htm.dir}">
+                <include name="*.htm"/>
+            </fileset>
+        </copy>
+    </target>
+
+
+    <path id="cobertura.classpath">
+        <fileset dir="${cobertura.home.dir}">
+            <include name="cobertura-2.1.1.jar" />
+            <include name="lib/**/*.jar" />
+        </fileset>
+    </path>
+
+    <taskdef classpathref="cobertura.classpath" resource="tasks.properties"/>
+
+    <target name="init">
+        <mkdir dir="${bin.dir}" />
+        <mkdir dir="${instrumented.dir}" />
+        <mkdir dir="${report.dir}" />
+        <mkdir dir="${report.temp.dir}" />
+        <mkdir dir="${report.cobertura.dir}" />
+    </target>
+
+    <target name="compile" depends="init">
+        <javac srcdir="${src.dir}" destdir="${bin.dir}" debug="yes">
+            <classpath refid="cobertura.classpath" />
+        </javac>
+    </target>
+
+    <target name="instrument" depends="init,compile">
+        <!--
+            Remove the coverage data file and any old instrumentation.
+        -->
+        <delete file="cobertura.ser"/>
+        <delete dir="${instrumented.dir}" />
+
+        <!--
+            Instrument the application classes, writing the
+            instrumented classes into ${build.instrumented.dir}.
+        -->
+        <cobertura-instrument todir="${instrumented.dir}">
+            <!--
+                The following line causes instrument to ignore any
+                source line containing a reference to slf4j/logback, for the
+                purposes of coverage reporting.
+            -->
+            <ignore regex="org.slf4j.*" />
+
+            <fileset dir="${bin.dir}">
+                <!--
+                    Instrument all the application classes, but
+                    don't instrument the test classes.
+                -->
+                <include name="**/*.class" />
+                <exclude name="**/*Test.class" />
+            </fileset>
+        </cobertura-instrument>
+    </target>
+
+    <!--&lt;!&ndash; &ndash;&gt;-->
+    <!--<target name="compile" depends="clean" description="Compile the entire project.">-->
+        <!--<mkdir dir="${bin.dir}"/>-->
+        <!--<javac debug="true"-->
+               <!--debuglevel="source"-->
+               <!--srcdir="${src.dir}/main"-->
+               <!--destdir="${bin.dir}"-->
+               <!--classpathref="cobertura.classpath"/>-->
+
+        <!--<javac debug="true"-->
+               <!--debuglevel="source"-->
+               <!--srcdir="${src.dir}/test"-->
+               <!--destdir="${bin.dir}"-->
+               <!--classpathref="cobertura.classpath"/>-->
+    <!--</target>-->
+
+    <!--&lt;!&ndash;&lt;!&ndash; &ndash;&gt;&ndash;&gt;-->
+    <!--&lt;!&ndash;<target name="compile" depends="clean" description="Compile the entire project.">&ndash;&gt;-->
+        <!--&lt;!&ndash;<mkdir dir="${bin.dir}" />&ndash;&gt;-->
+        <!--&lt;!&ndash;<javac debug="true"&ndash;&gt;-->
+               <!--&lt;!&ndash;debuglevel="lines, source"&ndash;&gt;-->
+               <!--&lt;!&ndash;srcdir="${src.dir}"&ndash;&gt;-->
+               <!--&lt;!&ndash;destdir="${bin.dir}"&ndash;&gt;-->
+               <!--&lt;!&ndash;classpathref="run.classpath"&ndash;&gt;-->
+        <!--&lt;!&ndash;/>&ndash;&gt;-->
+    <!--&lt;!&ndash;</target>&ndash;&gt;-->
+
+    <!--<path id="cobertura.auxpath">-->
+        <!--&lt;!&ndash;<fileset dir="lib">&ndash;&gt;-->
+            <!--&lt;!&ndash;<include name="**/*.jar"/>&ndash;&gt;-->
+        <!--&lt;!&ndash;</fileset>&ndash;&gt;-->
+        <!--<pathelement location="${bin.dir}/project"/>-->
+    <!--</path>-->
+
+    <!--<target name="cobertura.instrument"-->
+            <!--depends="compile, clean.temp"-->
+            <!--description="Instrument the project for code coverage."-->
+    <!--&gt;-->
+        <!--<mkdir dir="${report.temp.dir}"/>-->
+        <!--<cobertura-instrument datafile="${cobertura.ser.file}" >-->
+            <!--<ignore regex="org.apache.log4j.Logger"/>-->
+            <!--&lt;!&ndash;<classpath refid="cobertura.auxpath"/>&ndash;&gt;-->
+            <!--<fileset dir="${bin.dir}">-->
+                <!--<include name="**/*.class"/>-->
+                <!--<exclude name="**/*Test.class"/>-->
+            <!--</fileset>-->
+            <!--<auxclasspath>-->
+                <!--<path refid="cobertura.auxpath" />-->
+            <!--</auxclasspath>-->
+        <!--</cobertura-instrument>-->
+    <!--</target>-->
+
+    <!-- -->
+    <target name="junit"
+            depends="clean, compile"
+            description="Run all junit test cases."
+    >
+        <mkdir dir="${report.cobertura.dir}"/>
+        <mkdir dir="${report.temp.dir}"/>
+
+        <junit printsummary="yes" fork="yes" haltonfailure="no">
+
+            <sysproperty key="net.sourceforge.cobertura.datafile"
+                         file="${cobertura.ser.file}"/>
+
+            <classpath refid="cobertura.classpath"/>
+            <classpath location="${report.temp.dir}"/>
+            <classpath location="${bin.dir}"/>
+            <!--<classpath location="${basedir}/lib/junit-4.12.jar}"/>-->
+            <classpath location="${src.dir}"/>
+
+            <formatter type="plain"/>
+            <formatter type="xml"/>
+
+            <batchtest todir="${report.temp.dir}">
+                <fileset dir="${src.dir}">
+                    <include name="**/*Test.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+    <!-- -->
+    <target name="report.junit" depends="junit"
+            description="Create a report for the test result.">
+        <delete dir="${report.junit.dir}"/>
+        <mkdir dir="${report.junit.dir}"/>
+        <junitreport todir="${report.junit.dir}">
+            <fileset dir="${report.temp.dir}">
+                <include name="*.xml"/>
+            </fileset>
+            <report format="frames" todir="${report.junit.dir}"/>
+        </junitreport>
+    </target>
+
+    <!--&lt;!&ndash; &ndash;&gt;-->
+    <!--<target name="report.cobertura"-->
+            <!--depends="junit"-->
+            <!--description="Generate an HTML report on Cobertura."-->
+    <!--&gt;-->
+        <!--<cobertura-report format="html"-->
+                          <!--datafile="${cobertura.ser.file}"-->
+                          <!--destdir="${report.cobertura.dir}"-->
+        <!--&gt;-->
+            <!--<fileset dir="${src.dir}">-->
+                <!--<include name="**/*.java"/>-->
+            <!--</fileset>-->
+        <!--</cobertura-report>-->
+    <!--</target>-->
+
+    <!-- -->
+    <target name="report.cobertura"
+            depends="junit"
+            description="Generate an HTML report on Cobertura."
+    >
+        <cobertura-report format="html"
+                          datafile="${cobertura.ser.file}"
+                          destdir="${report.cobertura.dir}"
+        >
+            <fileset dir="${src.dir}">
+                <include name="**/*.java" />
+            </fileset>
+        </cobertura-report>
+    </target>
+
+    <!-- -->
+    <target name="clean.temp" description="Delete all temporary files and folders.">
+        <delete dir="${report.temp.dir}"/>
+    </target>
+
+    <!-- -->
+    <target name="run"
+            description="Run the build"
+            depends="clean,
+                prepare.report.dir,
+                compile,
+                junit,
+                report.junit,
+                report.cobertura,
+                clean.temp"
+    >
+    </target>
+
+</project>
